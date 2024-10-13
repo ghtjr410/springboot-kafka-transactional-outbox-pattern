@@ -17,6 +17,7 @@
     <modules>
         <module>post-service</module>
         <module>post-poller</module>
+        <module>projection-service</module>
     </modules>
 
     <properties>

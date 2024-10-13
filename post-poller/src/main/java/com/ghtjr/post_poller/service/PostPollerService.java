@@ -20,7 +20,7 @@ public class PostPollerService {
     private final MessagePublisher messagePublisher;
 
 
-    @Scheduled(fixedRate = 60000)
+    @Scheduled(fixedRate = 1000)
     public void pollOutboxMessagesAndPublish(){
         // 1. fetch unprocessed record
         List<Outbox> unprocessedRecords = outboxRepository.findByProcessedFalse();
@@ -28,7 +28,7 @@ public class PostPollerService {
         // 2. publish record to kafka/queue
         unprocessedRecords.forEach(outbox -> {
             try{
-                messagePublisher.publish(outbox.getPayload());
+                messagePublisher.publish(outbox.getAggregateId(),outbox.getPayload());
                 // update the message status to processed = true to avoid duplicate message processing
                 outbox.setProcessed(true);
                 outboxRepository.save(outbox);

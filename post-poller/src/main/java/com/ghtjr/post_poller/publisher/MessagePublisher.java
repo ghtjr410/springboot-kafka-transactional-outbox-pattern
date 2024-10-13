@@ -16,8 +16,8 @@ public class MessagePublisher {
     @Value("${post.poller.topic.name}")
     private String topicName;
 
-    public void publish(String payload) {
-        CompletableFuture<SendResult<String, String>> future = kafkaTemplate.send(topicName, payload);
+    public void publish(String key, String payload) {
+        CompletableFuture<SendResult<String, String>> future = kafkaTemplate.send(topicName, key, payload);
         future.whenComplete((result, ex) -> {
             if(ex == null) {
                 System.out.println("Sent message = [" + payload +
