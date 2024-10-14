@@ -1,5 +1,6 @@
 package com.ghtjr.post.model;
 
+import com.ghtjr.post.util.SagaStatus;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -19,8 +20,15 @@ public class Outbox {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
     private String aggregateId;
+
     private String payload;
+
     private Date createdAt;
+
+    @Enumerated(EnumType.STRING)
+    private SagaStatus sagaStatus;
+
     private Boolean processed;
 }

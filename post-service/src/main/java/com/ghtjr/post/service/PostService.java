@@ -7,6 +7,7 @@ import com.ghtjr.post.model.Outbox;
 import com.ghtjr.post.model.Post;
 import com.ghtjr.post.repository.OutboxRepository;
 import com.ghtjr.post.repository.PostRepository;
+import com.ghtjr.post.util.SagaStatus;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
