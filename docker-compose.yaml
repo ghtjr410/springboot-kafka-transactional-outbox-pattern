@@ -1,4 +1,14 @@
 services:
+  mongodb:
+     image: mongo:7.0.5
+     container_name: mongodb
+     ports:
+       - "27017:27017"
+     environment:
+       MONGO_INITDB_ROOT_USERNAME: root
+       MONGO_INITDB_ROOT_PASSWORD: 1234
+       MONGO_INITDB_DATABASE: querydb
+
   broker:
     image: confluentinc/cp-kafka:7.5.0
     container_name: broker
