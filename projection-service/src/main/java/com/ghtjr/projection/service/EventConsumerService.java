@@ -1,19 +1,19 @@
 package com.ghtjr.projection.service;
 
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ghtjr.projection.event.CompensationEvent;
+import com.ghtjr.projection.event.PostCreatedEvent;
 import com.ghtjr.projection.model.Post;
 import com.ghtjr.projection.model.ProcessedEvent;
 import com.ghtjr.projection.repository.PostRepository;
 import com.ghtjr.projection.repository.ProcessedEventRepository;
-
-import com.mongodb.DuplicateKeyException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.springframework.kafka.annotation.KafkaListener;
-import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.support.Acknowledgment;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,38 +27,46 @@ public class EventConsumerService {
     private final KafkaTemplate<String, String> kafkaTemplate;
 
     @KafkaListener(topics = "${projection.topic.name}", groupId = "${projection.consumer.group-id}")
+    @Transactional
     public void consume(ConsumerRecord<String, String> record, Acknowledgment ack) {
-        log.info("Received message: {}", record);
+        log.info("Received message: key={}, value={}", record.key(), record.value());
 
         String eventId = record.key();
         String payload = record.value();
 
         // 멱등성 체크
         if (processedEventRepository.existsByEventId(eventId)) {
-            // 이미 처리된 이벤트이므로 커밋하고 종료
-            System.out.println("이미 처리된 이벤트 이므로 커밋하고 종료");
+            log.info("이미 처리된 이벤트입니다. eventId={}", eventId);
             ack.acknowledge();
             return;
         }
 
+        ProcessedEvent processedEvent = new ProcessedEvent();
         try {
             // 처리 중 상태 저장
-            ProcessedEvent processedEvent = new ProcessedEvent();
             processedEvent.setEventId(eventId);
             processedEvent.setStatus("PROCESSING");
             processedEventRepository.save(processedEvent);
 
-            // 이벤트 처리 로직
-            log.info("payload를 Post 객체로 변환합니다.");
-            Post post = objectMapper.readValue(payload, Post.class);
-
-//            // 인위적으로 예외 발생
-//            if (true) {
-//                throw new RuntimeException("인위적인 예외 발생");
+//            if(true){
+//                throw new RuntimeException("의도적인 테스트 예외 발생");
 //            }
 
-            // MongoDB에 저장 (업서트 사용)
+
+            // 이벤트 처리 로직
+            PostCreatedEvent event = objectMapper.readValue(payload, PostCreatedEvent.class);
+            Post post = new Post();
+            post.setUuid(event.getPostId());
+            post.setUserUuid(event.getUserUuid());
+            post.setNickname(event.getNickname());
+            post.setTitle(event.getTitle());
+            post.setContent(event.getContent());
+            post.setCreatedDate(event.getCreatedDate());
+            post.setUpdatedDate(event.getUpdatedDate());
+
+            // MongoDB에 저장 (업서트)
             postRepository.save(post);
+            log.info("Post 저장 완료: uuid={}", post.getUuid());
 
             // 처리 완료 상태 업데이트
             processedEvent.setStatus("COMPLETED");
@@ -67,16 +75,14 @@ public class EventConsumerService {
             // 수동 커밋
             ack.acknowledge();
 
-        } catch (DuplicateKeyException e) {
-            // 중복 키 예외 발생 시 이미 처리된 것으로 간주하고 커밋
-            log.warn("중복된 데이터입니다. 이벤트를 커밋합니다.", e);
-            ack.acknowledge();
         } catch (Exception e) {
+            log.error("이벤트 처리 중 오류 발생: eventId={}, error={}", eventId, e.getMessage());
+
             // 보상 이벤트 발행
             publishCompensationEvent(eventId, payload);
-
-            // 에러 로그 남기기
-            log.error("이벤트 처리 중 오류 발생, 보상 이벤트를 발행합니다.", e);
+            // 처리 실패 상태 업데이트
+            processedEvent.setStatus("FAILED");
+            processedEventRepository.save(processedEvent);
 
             // 수동 커밋하여 재처리를 방지
             ack.acknowledge();
@@ -86,11 +92,12 @@ public class EventConsumerService {
     private void publishCompensationEvent(String key, String payload) {
         try {
             // 원본 payload에서 필요한 데이터 추출
-            Post post = objectMapper.readValue(payload, Post.class);
+            PostCreatedEvent event = objectMapper.readValue(payload, PostCreatedEvent.class);
 
             // 보상 이벤트 생성
             CompensationEvent compensationEvent = new CompensationEvent();
-            compensationEvent.setPostId(post.getUuid()); // 또는 적절한 ID 필드 사용
+            compensationEvent.setEventId(key);
+            compensationEvent.setPostId(event.getPostId());
             compensationEvent.setReason("이벤트 처리 중 오류 발생");
 
             // 보상 이벤트를 JSON으로 직렬화
@@ -98,10 +105,11 @@ public class EventConsumerService {
 
             // 보상 이벤트 발행
             kafkaTemplate.send("compensation-topic", key, compensationPayload);
+            log.info("보상 이벤트 발행 완료: eventId={}", key);
 
         } catch (Exception ex) {
-            log.error("보상 이벤트 발행 중 오류 발생", ex);
-            // 보상 이벤트 발행 실패 시 추가적인 처리 로직이 필요할 수 있습니다.
+            log.error("보상 이벤트 발행 중 오류 발생: key={}, error={}", key, ex.getMessage());
+            // 보상 이벤트 발행 실패 시 추가적인 처리 로직 필요
         }
     }
 }

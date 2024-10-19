@@ -26,40 +26,6 @@ public class KafkaConsumerConfig {
     private String groupId;
 
     @Bean
-    public ConcurrentKafkaListenerContainerFactory<String, String> kafkaListenerContainerFactory(
-            ConsumerFactory<String, String> consumerFactory,
-            DefaultErrorHandler errorHandler) {
-        ConcurrentKafkaListenerContainerFactory<String, String> factory = new ConcurrentKafkaListenerContainerFactory<>();
-
-        factory.setConsumerFactory(consumerFactory());
-        // 수동 커밋 설정 (필요에 따라)
-        factory.getContainerProperties().setAckMode(
-                ContainerProperties.AckMode.MANUAL);
-        // 사용자 정의 에러 핸들러 설정
-        factory.setCommonErrorHandler(errorHandler);
-        return factory;
-    }
-
-    @Bean
-    public DefaultErrorHandler errorHandler() {
-        // 재시도 간격과 횟수 설정 (1초 간격으로 최대 3번 재시도)
-        ExponentialBackOffWithMaxRetries backOff = new ExponentialBackOffWithMaxRetries(3);
-        backOff.setInitialInterval(1000L);
-        backOff.setMultiplier(1.0); // 지수 증가 없이 고정 간격 사용
-        backOff.setMaxInterval(1000L);
-
-        // 필요에 따라 특정 예외를 재시도하거나 무시하도록 설정할 수 있습니다.
-        DefaultErrorHandler errorHandler = new DefaultErrorHandler(backOff);
-
-        return errorHandler;
-    }
-
-    @Bean
-    public DefaultKafkaConsumerFactory<String, String> consumerFactory() {
-        return new DefaultKafkaConsumerFactory<>(consumerConfigs());
-    }
-
-    @Bean
     public Map<String, Object> consumerConfigs() {
         Map<String, Object> props = new HashMap<>();
 
@@ -78,4 +44,41 @@ public class KafkaConsumerConfig {
 
         return props;
     }
+
+    @Bean
+    public DefaultKafkaConsumerFactory<String, String> consumerFactory() {
+        return new DefaultKafkaConsumerFactory<>(consumerConfigs());
+    }
+
+    @Bean
+    public DefaultErrorHandler errorHandler() {
+        // 재시도 간격과 횟수 설정 (1초 간격으로 최대 3번 재시도)
+        ExponentialBackOffWithMaxRetries backOff = new ExponentialBackOffWithMaxRetries(3);
+        backOff.setInitialInterval(1000L);
+        backOff.setMultiplier(1.0); // 지수 증가 없이 고정 간격 사용
+        backOff.setMaxInterval(1000L);
+
+        // 필요에 따라 특정 예외를 재시도하거나 무시하도록 설정할 수 있습니다.
+        return new DefaultErrorHandler(backOff);
+    }
+    @Bean
+    public ConcurrentKafkaListenerContainerFactory<String, String> kafkaListenerContainerFactory(
+            ConsumerFactory<String, String> consumerFactory,
+            DefaultErrorHandler errorHandler) {
+        ConcurrentKafkaListenerContainerFactory<String, String> factory = new ConcurrentKafkaListenerContainerFactory<>();
+
+        factory.setConsumerFactory(consumerFactory());
+        // 수동 커밋 설정 (필요에 따라)
+        factory.getContainerProperties().setAckMode(
+                ContainerProperties.AckMode.MANUAL);
+        // 사용자 정의 에러 핸들러 설정
+        factory.setCommonErrorHandler(errorHandler);
+        return factory;
+    }
+
+
+
+
+
+
 }

@@ -8,9 +8,6 @@ import org.springframework.data.mongodb.core.mapping.Document;
 @Data
 @Document(collection = "processed_events")
 public class ProcessedEvent {
-
-
-
     @Id
     private String Id;
 
