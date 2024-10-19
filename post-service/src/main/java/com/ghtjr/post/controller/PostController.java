@@ -1,6 +1,7 @@
 package com.ghtjr.post.controller;
 
 import com.ghtjr.post.dto.PostRequestDTO;
+import com.ghtjr.post.dto.PostResponseDTO;
 import com.ghtjr.post.model.Post;
 import com.ghtjr.post.service.PostService;
 import lombok.RequiredArgsConstructor;
@@ -19,9 +20,14 @@ public class PostController {
     private final PostService postService;
 
     @PostMapping
-    public ResponseEntity<Post> createPost(
+    public ResponseEntity<PostResponseDTO> createPost(
             @RequestBody PostRequestDTO postRequestDTO) {
-        Post createdPost = postService.createPost(postRequestDTO);
-        return ResponseEntity.status(HttpStatus.CREATED).body(createdPost);
+        try {
+            PostResponseDTO createdPost = postService.createPost(postRequestDTO);
+            return ResponseEntity.status(HttpStatus.CREATED).body(createdPost);
+        } catch (Exception e) {
+            // 예외 처리 로직 추가
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
     }
 }

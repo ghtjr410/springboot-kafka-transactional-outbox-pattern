@@ -1,13 +1,13 @@
 package com.ghtjr.post.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.ghtjr.post.dto.PostRequestDTO;
-import com.ghtjr.post.mapper.PostDTOtoEntityMapper;
-import com.ghtjr.post.mapper.PostEntityToOutboxEntityMapper;
-import com.ghtjr.post.model.Outbox;
+import com.ghtjr.post.dto.PostResponseDTO;
+import com.ghtjr.post.mapper.PostMapper;
+import com.ghtjr.post.model.OutboxEvent;
 import com.ghtjr.post.model.Post;
-import com.ghtjr.post.repository.OutboxRepository;
+import com.ghtjr.post.repository.OutboxEventRepository;
 import com.ghtjr.post.repository.PostRepository;
-import com.ghtjr.post.util.SagaStatus;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -15,22 +15,19 @@ import org.springframework.stereotype.Service;
 @Service
 @RequiredArgsConstructor
 public class PostService {
-
-    private final PostDTOtoEntityMapper postDTOtoEntityMapper;
-    private final PostEntityToOutboxEntityMapper postEntityToOutboxEntityMapper;
-
     private final PostRepository postRepository;
-    private final OutboxRepository outboxRepository;
+    private final OutboxEventRepository outboxEventRepository;
+    private final PostMapper postMapper;
 
     @Transactional
-    public Post createPost(PostRequestDTO postRequestDTO){
+    public PostResponseDTO createPost(PostRequestDTO postRequestDTO) throws JsonProcessingException {
 
-        Post post = postDTOtoEntityMapper.map(postRequestDTO);
+        Post post = postMapper.toEntity(postRequestDTO);
         post = postRepository.save(post);
 
-        Outbox outbox = postEntityToOutboxEntityMapper.map(post);
-        outboxRepository.save(outbox);
+        OutboxEvent outboxEvent = postMapper.toOutboxEvent(post);
+        outboxEventRepository.save(outboxEvent);
 
-        return post;
+        return postMapper.toResponseDTO(post);
     }
 }
