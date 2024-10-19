@@ -15,7 +15,7 @@ import org.springframework.stereotype.Component;
 public class CompensationEventConsumer {
 
     private final CompensationService compensationService;
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final ObjectMapper objectMapper;
 
     @KafkaListener(topics = "${compensation.topic.name}", groupId = "{post.consumer.group-id}")
     public void consumeCompensationEvent(String message, Acknowledgment ack) {

@@ -1,6 +1,5 @@
 package com.ghtjr.post.config;
 
-import org.apache.kafka.clients.admin.NewTopic;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.springframework.beans.factory.annotation.Value;
@@ -44,8 +43,8 @@ public class KafkaProducerConfig {
     public KafkaTemplate<String, String> kafkaTemplate() {
         return new KafkaTemplate<>(producerFactory());
     }
-    @Bean
-    public NewTopic postEventsTopic() {
-        return new NewTopic(eventTopicName, 3, (short) 1);
-    }
+    // @Bean
+    // public NewTopic postEventsTopic() {
+    //     return new NewTopic(eventTopicName, 3, (short) 1);
+    // }
 }

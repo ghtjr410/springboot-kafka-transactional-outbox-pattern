@@ -2,7 +2,6 @@ package com.ghtjr.post.controller;
 
 import com.ghtjr.post.dto.PostRequestDTO;
 import com.ghtjr.post.dto.PostResponseDTO;
-import com.ghtjr.post.model.Post;
 import com.ghtjr.post.service.PostService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
