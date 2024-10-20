@@ -1,5 +1,7 @@
 package com.ghtjr.post.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.ghtjr.post.avro.PostCreatedEvent;
 import com.ghtjr.post.model.OutboxEvent;
 import com.ghtjr.post.producer.PostEventProducer;
 import com.ghtjr.post.repository.OutboxEventRepository;
@@ -20,6 +22,7 @@ public class OutboxEventService {
 
     private final OutboxEventRepository outboxEventRepository;
     private final PostEventProducer messagePublisher;
+    private final ObjectMapper objectMapper;
 
     @Scheduled(fixedRate = 1000)
     public void processOutboxEvents() {
@@ -32,8 +35,11 @@ public class OutboxEventService {
                 event.setSagaStatus(SagaStatus.PROCESSING);
                 outboxEventRepository.save(event);
 
+                // payload를 PostCreatedEvent 객체로 변환
+                PostCreatedEvent postCreatedEvent = objectMapper.readValue(event.getPayload(), PostCreatedEvent.class);
+
                 // 메시지 발행
-                messagePublisher.publishEvent(event.getEventId(), event.getPayload());
+                messagePublisher.publishEvent(event.getEventId(), postCreatedEvent);
 
                 // 상태 업데이트
                 event.setProcessed(true);

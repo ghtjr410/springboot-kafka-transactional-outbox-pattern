@@ -1,0 +1,14 @@
+{
+  "namespace": "com.ghtjr.post.avro",
+  "type": "record",
+  "name": "PostCreatedEvent",
+  "fields": [
+    {"name": "postId", "type": "string"},
+    {"name": "userUuid", "type": "string"},
+    {"name": "nickname", "type": "string"},
+    {"name": "title", "type": "string"},
+    {"name": "content", "type": "string"},
+    {"name": "createdDate", "type": "long"},
+    {"name": "updatedDate", "type": "long"}
+  ]
+}
