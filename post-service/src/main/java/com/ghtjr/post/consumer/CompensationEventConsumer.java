@@ -1,10 +1,11 @@
 package com.ghtjr.post.consumer;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.ghtjr.post.event.PostCompensationEvent;
 import com.ghtjr.post.service.CompensationService;
+import com.ghtjr.projection.avro.PostCompensationEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.support.Acknowledgment;
 import org.springframework.stereotype.Component;
@@ -15,14 +16,15 @@ import org.springframework.stereotype.Component;
 public class CompensationEventConsumer {
 
     private final CompensationService compensationService;
-    private final ObjectMapper objectMapper;
 
     @KafkaListener(topics = "${compensation.topic.name}", groupId = "{post.consumer.group-id}")
-    public void consumeCompensationEvent(String message, Acknowledgment ack) {
+    public void consume(ConsumerRecord<String, PostCompensationEvent> record, Acknowledgment ack) {
         try {
-            log.info("Received compensation event: {}", message);
-            PostCompensationEvent event = objectMapper.readValue(message, PostCompensationEvent.class);
-            compensationService.processCompensation(event);
+            log.info("Received compensation message: key={}, value={}", record.key(), record.value());
+
+            String eventId = record.key();
+            PostCompensationEvent postCompensationEvent = record.value();
+            compensationService.processCompensation(eventId, postCompensationEvent);
             ack.acknowledge();
         } catch (Exception e) {
             log.error("Error processing compensation event", e);

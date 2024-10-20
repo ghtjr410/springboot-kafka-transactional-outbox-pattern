@@ -1,6 +1,6 @@
 package com.ghtjr.post.service;
 
-import com.ghtjr.post.event.PostCompensationEvent;
+
 import com.ghtjr.post.model.OutboxEvent;
 import com.ghtjr.post.model.Post;
 import com.ghtjr.post.model.ProcessedEvent;
@@ -8,10 +8,11 @@ import com.ghtjr.post.repository.OutboxEventRepository;
 import com.ghtjr.post.repository.PostRepository;
 import com.ghtjr.post.repository.ProcessedEventRepository;
 import com.ghtjr.post.util.SagaStatus;
+import com.ghtjr.projection.avro.PostCompensationEvent;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
@@ -23,9 +24,8 @@ public class CompensationService {
     private final ProcessedEventRepository processedEventRepository;
 
     @Transactional
-    public void processCompensation(PostCompensationEvent event) {
-        String eventId = event.getEventId();
-        String postId = event.getPostId();
+    public void processCompensation(String eventId, PostCompensationEvent event) {
+        String postId = event.getPostId().toString();
         log.info("Processing compensation for eventId: {} and postId: {}", eventId, postId);
 
         // 멱등성 체크 (이미 처리된 이벤트인지 확인)

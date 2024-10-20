@@ -1,0 +1,9 @@
+{
+  "namespace": "com.ghtjr.projection.avro",
+  "type": "record",
+  "name": "PostCompensationEvent",
+  "fields": [
+    {"name": "postId", "type": "string"},
+    {"name": "reason", "type": "string"}
+  ]
+}

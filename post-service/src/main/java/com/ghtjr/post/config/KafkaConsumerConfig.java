@@ -1,5 +1,9 @@
 package com.ghtjr.post.config;
 
+import com.ghtjr.projection.avro.PostCompensationEvent;
+import io.confluent.kafka.serializers.AbstractKafkaSchemaSerDeConfig;
+import io.confluent.kafka.serializers.KafkaAvroDeserializer;
+import io.confluent.kafka.serializers.KafkaAvroDeserializerConfig;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.springframework.beans.factory.annotation.Value;
@@ -20,67 +24,74 @@ import java.util.Map;
 @Configuration
 public class KafkaConsumerConfig {
 
-    @Value("${spring.kafka.bootstrap-servers}")
-    private String bootstrapServers;
+     @Value("${spring.kafka.bootstrap-servers}")
+     private String bootstrapServers;
 
-    @Value("${spring.kafka.consumer.group-id}")
-    private String groupId;
+     @Value("${spring.kafka.consumer.group-id}")
+     private String groupId;
 
-    // Kafka Consumer 공통 설정
-    @Bean
-    public Map<String, Object> consumerConfigs() {
-        Map<String, Object> props = new HashMap<>();
+    @Value("${spring.kafka.properties.schema.registry.url}")
+    private String schemaRegistryUrl;
 
-        // Kafka Consumer 설정
-        props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
-        props.put(ConsumerConfig.GROUP_ID_CONFIG, groupId);
+     // Kafka Consumer 공통 설정
+     @Bean
+     public Map<String, Object> consumerConfigs() {
+         Map<String, Object> configProps = new HashMap<>();
 
-        // 멱등성을 위한 자동 커밋 비활성화
-        props.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, false);
+         // Kafka Consumer 설정
+         configProps.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
+         configProps.put(ConsumerConfig.GROUP_ID_CONFIG, groupId);
 
-        // 오프셋 설정: earliest로 설정하여 처음부터 메시지를 소비
-        props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+         // 멱등성을 위한 자동 커밋 비활성화
+         configProps.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, false);
 
-        // 메시지 직렬화/역직렬화 설정
-        props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
-        props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
+         // 오프셋 설정: earliest로 설정하여 처음부터 메시지를 소비
+         configProps.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
 
-        return props;
-    }
-    // ConsumerFactory 생성
-    @Bean
-    public ConsumerFactory<String, String> consumerFactory() {
-        return new DefaultKafkaConsumerFactory<>(consumerConfigs());
-    }
-    // 에러 핸들러 설정 (재시도 로직 포함)
-    @Bean
-    public DefaultErrorHandler errorHandler() {
-        // 1초 간격으로 최대 3번 재시도 설정
-        ExponentialBackOffWithMaxRetries backOff = new ExponentialBackOffWithMaxRetries(3);
-        backOff.setInitialInterval(1000L); // 1초 간격으로 재시도
-        backOff.setMultiplier(1.0);        // 고정 간격 사용
-        backOff.setMaxInterval(1000L);     // 최대 간격 설정
+         // 메시지 직렬화/역직렬화 설정
+         configProps.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
+         configProps.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, KafkaAvroDeserializer.class);
+         configProps.put(AbstractKafkaSchemaSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG, schemaRegistryUrl);
 
-        // 특정 예외를 무시하거나 재시도할 수 있도록 추가 설정 가능
-        return new DefaultErrorHandler(backOff);
-    }
+         // Specific Avro Reader 사용
+         configProps.put(KafkaAvroDeserializerConfig.SPECIFIC_AVRO_READER_CONFIG, true);
 
-    @Bean
-    public ConcurrentKafkaListenerContainerFactory<String, String> kafkaListenerContainerFactory(
-            ConsumerFactory<String, String> consumerFactory,
-            DefaultErrorHandler errorHandler) {
+         return configProps;
+     }
+     // ConsumerFactory 생성
+     @Bean
+     public ConsumerFactory<String, PostCompensationEvent> consumerFactory() {
+         return new DefaultKafkaConsumerFactory<>(consumerConfigs());
+     }
+     // 에러 핸들러 설정 (재시도 로직 포함)
+     @Bean
+     public DefaultErrorHandler errorHandler() {
+         // 1초 간격으로 최대 3번 재시도 설정
+         ExponentialBackOffWithMaxRetries backOff = new ExponentialBackOffWithMaxRetries(3);
+         backOff.setInitialInterval(1000L); // 1초 간격으로 재시도
+         backOff.setMultiplier(1.0);        // 고정 간격 사용
+         backOff.setMaxInterval(1000L);     // 최대 간격 설정
 
-        ConcurrentKafkaListenerContainerFactory<String, String> factory =
-                new ConcurrentKafkaListenerContainerFactory<>();
+         // 특정 예외를 무시하거나 재시도할 수 있도록 추가 설정 가능
+         return new DefaultErrorHandler(backOff);
+     }
 
-        factory.setConsumerFactory(consumerFactory);
+     @Bean
+     public ConcurrentKafkaListenerContainerFactory<String, PostCompensationEvent> kafkaListenerContainerFactory(
+             ConsumerFactory<String, PostCompensationEvent> consumerFactory,
+             DefaultErrorHandler errorHandler) {
 
-        // 수동 커밋 설정 (AckMode.MANUAL)
-        factory.getContainerProperties().setAckMode(ContainerProperties.AckMode.MANUAL);
+         ConcurrentKafkaListenerContainerFactory<String, PostCompensationEvent> factory =
+                 new ConcurrentKafkaListenerContainerFactory<>();
 
-        // 에러 핸들러 설정
-        factory.setCommonErrorHandler(errorHandler);
+         factory.setConsumerFactory(consumerFactory);
 
-        return factory;
-    }
+         // 수동 커밋 설정 (AckMode.MANUAL)
+         factory.getContainerProperties().setAckMode(ContainerProperties.AckMode.MANUAL);
+
+         // 에러 핸들러 설정
+         factory.setCommonErrorHandler(errorHandler);
+
+         return factory;
+     }
 }
