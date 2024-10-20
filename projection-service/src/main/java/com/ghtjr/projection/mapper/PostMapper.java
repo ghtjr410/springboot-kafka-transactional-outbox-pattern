@@ -1,8 +1,8 @@
 package com.ghtjr.projection.mapper;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.ghtjr.post.avro.PostCreatedEvent;
 import com.ghtjr.projection.dto.PostResponseDTO;
-import com.ghtjr.projection.event.PostCreatedEvent;
 import com.ghtjr.projection.model.Post;
 import com.ghtjr.projection.model.ProcessedEvent;
 import org.springframework.stereotype.Component;
@@ -15,11 +15,11 @@ public class PostMapper {
 
     public Post toEntity(PostCreatedEvent event) {
         Post post = new Post();
-        post.setUuid(event.getPostId());
-        post.setUserUuid(event.getUserUuid());
-        post.setNickname(event.getNickname());
-        post.setTitle(event.getTitle());
-        post.setContent(event.getContent());
+        post.setUuid(event.getPostId().toString());
+        post.setUserUuid(event.getUserUuid().toString());
+        post.setNickname(event.getNickname().toString());
+        post.setTitle(event.getTitle().toString());
+        post.setContent(event.getContent().toString());
         post.setCreatedDate(event.getCreatedDate());
         post.setUpdatedDate(event.getUpdatedDate());
         return post;
