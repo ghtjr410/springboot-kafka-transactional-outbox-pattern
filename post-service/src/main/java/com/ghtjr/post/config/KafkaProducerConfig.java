@@ -36,13 +36,10 @@ public class KafkaProducerConfig {
         configProps.put(AbstractKafkaSchemaSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG, schemaRegistryUrl);
 
         // 재시도 설정
-        configProps.put(ProducerConfig.RETRIES_CONFIG, Integer.MAX_VALUE); // 무한 재시도
+//        configProps.put(ProducerConfig.RETRIES_CONFIG, Integer.MAX_VALUE); // 무한 재시도
         configProps.put(ProducerConfig.ACKS_CONFIG, "all"); // 모든 리플리카로부터의 ACK를 기다림
         configProps.put(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, true); // 아이도포턴트 프로듀서 활성화
-
-        // 추가적인 안정성 설정
         configProps.put(ProducerConfig.MAX_IN_FLIGHT_REQUESTS_PER_CONNECTION, 1); // 메시지 순서 보장
-
 
         return new DefaultKafkaProducerFactory<>(configProps);
     }

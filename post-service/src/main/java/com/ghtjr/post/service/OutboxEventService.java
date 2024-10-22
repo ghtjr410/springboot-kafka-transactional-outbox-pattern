@@ -8,6 +8,9 @@ import com.ghtjr.post.repository.OutboxEventRepository;
 import com.ghtjr.post.util.SagaStatus;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.retry.annotation.Backoff;
+import org.springframework.retry.annotation.Recover;
+import org.springframework.retry.annotation.Retryable;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -21,8 +24,9 @@ import java.util.List;
 public class OutboxEventService {
 
     private final OutboxEventRepository outboxEventRepository;
-    private final PostEventProducer messagePublisher;
+    private final PostEventProducer postEventProducer;
     private final ObjectMapper objectMapper;
+    private final OutboxEventProcessor outboxEventProcessor;
 
     @Scheduled(fixedRate = 1000)
     public void processOutboxEvents() {
@@ -31,27 +35,10 @@ public class OutboxEventService {
 
         unprocessedEvents.forEach(event -> {
             try {
-                // Saga 상태를 PROCESSING으로 변경
-                event.setSagaStatus(SagaStatus.PROCESSING);
-                outboxEventRepository.save(event);
-
-                // payload를 PostCreatedEvent 객체로 변환
-                PostCreatedEvent postCreatedEvent = objectMapper.readValue(event.getPayload(), PostCreatedEvent.class);
-
-                // 메시지 발행
-                messagePublisher.publishEvent(event.getEventId(), postCreatedEvent);
-
-                // 상태 업데이트
-                event.setProcessed(true);
-                event.setSagaStatus(SagaStatus.COMPLETED);
-                outboxEventRepository.save(event);
+                outboxEventProcessor.processEventWithRetry(event);
             } catch (Exception e) {
-                log.error("Error publishing event: {}", e.getMessage());
-                // 보상 트랜잭션 수행 또는 에러 처리 로직 추가
-                event.setSagaStatus(SagaStatus.FAILED);
-                outboxEventRepository.save(event);
+                log.error("Error processing event after retries: {}", e.getMessage());
             }
         });
     }
-
 }

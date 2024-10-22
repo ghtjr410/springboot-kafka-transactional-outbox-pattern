@@ -1,6 +1,5 @@
 package com.ghtjr.post.service;
 
-
 import com.ghtjr.post.model.OutboxEvent;
 import com.ghtjr.post.model.Post;
 import com.ghtjr.post.model.ProcessedEvent;
@@ -22,6 +21,23 @@ public class CompensationService {
     private final PostRepository postRepository;
     private final OutboxEventRepository outboxEventRepository;
     private final ProcessedEventRepository processedEventRepository;
+
+    @Transactional
+    public void compensateOutboxEvent(OutboxEvent event) {
+        // Implement your compensation logic here
+        try {
+            // Compensation logic
+            log.info("Compensation transaction executed for eventId: {}, postUuid: {}", event.getEventId(), event.getPostId());
+            event.setSagaStatus(SagaStatus.FAILED);
+            outboxEventRepository.save(event);
+            // postId에 해당하는 포스트를 삭제합니다.
+            postRepository.deleteByUuid(event.getPostId());
+
+        } catch (Exception ex) {
+            log.error("Error during compensation transaction: {}", ex.getMessage());
+            // Handle compensation failure if necessary
+        }
+    }
 
     @Transactional
     public void processCompensation(String eventId, PostCompensationEvent event) {

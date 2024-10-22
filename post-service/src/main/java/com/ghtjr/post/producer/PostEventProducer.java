@@ -19,16 +19,19 @@ public class PostEventProducer {
     @Value("${post.event.topic.name}")
     private String topicName;
 
-    public void publishEvent(String key, PostCreatedEvent event) {
-        CompletableFuture<SendResult<String, PostCreatedEvent>> future = kafkaTemplate.send(topicName, key, event);
-        future.whenComplete((result, ex) -> {
-            if (ex == null) {
-                // 성공적으로 전송됨
-                log.info("Sent message = [{}] with offset=[{}]", event, result.getRecordMetadata().offset());
-            } else {
-                // 전송 실패 처리
-                log.error("Unable to send message=[{}] due to : {}", event, ex.getMessage());
+    public void publishEvent(String key, PostCreatedEvent event) throws Exception {
+        try {
+            // 예외를 발생시켜 재시도 동작을 확인
+            if(true){
+                throw new RuntimeException("Simulated exception for testing");
             }
-        });
+            // 메시지 전송 및 결과 확인 (동기적으로 처리)
+            SendResult<String, PostCreatedEvent> result = kafkaTemplate.send(topicName, key, event).get();
+            log.info("Sent message = [{}] with offset=[{}]", event, result.getRecordMetadata().offset());
+        } catch (Exception ex) {
+            // 전송 실패 시 예외를 던짐
+            log.error("Failed to send message: {}", ex.getMessage());
+            throw ex;
+        }
     }
 }
