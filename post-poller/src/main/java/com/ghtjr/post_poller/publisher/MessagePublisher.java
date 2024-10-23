@@ -3,7 +3,9 @@ package com.ghtjr.post_poller.publisher;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.kafka.support.KafkaHeaders;
 import org.springframework.kafka.support.SendResult;
+import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.stereotype.Component;
 
 import java.util.concurrent.CompletableFuture;
@@ -17,6 +19,14 @@ public class MessagePublisher {
     private String topicName;
 
     public void publish(String key, String payload) {
+        org.springframework.messaging.Message<String> message = MessageBuilder
+                .withPayload(payload)
+                .setHeader(KafkaHeaders.TOPIC, topicName)
+                .setHeader(KafkaHeaders.KEY, key)
+                .setHeader("eventType", "PostCreatedEvent")
+                .build();
+
+
         CompletableFuture<SendResult<String, String>> future = kafkaTemplate.send(topicName, key, payload);
         future.whenComplete((result, ex) -> {
             if(ex == null) {
@@ -27,5 +37,17 @@ public class MessagePublisher {
                         payload + "] due to : " + ex.getMessage());
             }
         });
+    }
+
+    public void publishCompensationEvent(String key, String payload) {
+        // 메시지에 헤더 추가
+        org.springframework.messaging.Message<String> message = MessageBuilder
+                .withPayload(payload)
+                .setHeader(KafkaHeaders.TOPIC, topicName)
+                .setHeader(KafkaHeaders.KEY, key)
+                .setHeader("eventType", "PostCreationCompensatedEvent")
+                .build();
+
+        kafkaTemplate.send(message);
     }
 }
