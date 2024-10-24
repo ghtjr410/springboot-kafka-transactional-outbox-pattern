@@ -1,9 +1,12 @@
 package com.ghtjr.projection.config;
 
 import com.ghtjr.post.avro.PostCreatedEvent;
+import com.ghtjr.projection.service.PostCompensationEventService;
 import io.confluent.kafka.serializers.AbstractKafkaSchemaSerDeConfig;
 import io.confluent.kafka.serializers.KafkaAvroDeserializer;
 import io.confluent.kafka.serializers.KafkaAvroDeserializerConfig;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.springframework.beans.factory.annotation.Value;
@@ -22,6 +25,8 @@ import java.util.Map;
 
 @EnableKafka
 @Configuration
+@Slf4j
+@RequiredArgsConstructor
 public class KafkaConsumerConfig {
     @Value("${spring.kafka.bootstrap-servers}")
     private String bootstrapServers;
@@ -31,6 +36,8 @@ public class KafkaConsumerConfig {
 
     @Value("${spring.kafka.properties.schema.registry.url}")
     private String schemaRegistryUrl;
+
+    private final PostCompensationEventService postCompensationEventService;
 
     @Bean
     public Map<String, Object> consumerConfigs() {
@@ -68,10 +75,23 @@ public class KafkaConsumerConfig {
         backOff.setInitialInterval(1000L);
         backOff.setMultiplier(1.0); // 지수 증가 없이 고정 간격 사용
         backOff.setMaxInterval(1000L);
+        DefaultErrorHandler errorHandler = new DefaultErrorHandler(        // 회복자 설정
+                (consumerRecord, exception) -> {
+                    String eventId = (String) consumerRecord.key();
+                    PostCreatedEvent postCreatedEvent = (PostCreatedEvent) consumerRecord.value();
+                    log.error("최종 재시도 실패. 보상 트랜잭션을 수행합니다. eventId={}, error={}", eventId, exception.getMessage());
+                    postCompensationEventService.processEvent(eventId, postCreatedEvent);
+                },
+                backOff);
 
+        // 재시도 시도 시 로그를 남기기 위한 리스너 추가
+        errorHandler.setRetryListeners((record, exception, deliveryAttempt) -> {
+            log.warn("재시도 시도 중입니다. 시도 횟수: {}, 예외: {}", deliveryAttempt, exception.getMessage());
+        });
         // 필요에 따라 특정 예외를 재시도하거나 무시하도록 설정할 수 있습니다.
-        return new DefaultErrorHandler(backOff);
+        return errorHandler;
     }
+
     @Bean
     public ConcurrentKafkaListenerContainerFactory<String, PostCreatedEvent> kafkaListenerContainerFactory(
             ConsumerFactory<String, PostCreatedEvent> consumerFactory,
@@ -84,6 +104,7 @@ public class KafkaConsumerConfig {
                 ContainerProperties.AckMode.MANUAL);
         // 사용자 정의 에러 핸들러 설정
         factory.setCommonErrorHandler(errorHandler);
+
         return factory;
     }
 }

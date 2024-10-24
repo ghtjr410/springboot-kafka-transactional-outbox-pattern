@@ -21,13 +21,11 @@ public class PostCreatedEventConsumer {
 
         String eventId = record.key();
         PostCreatedEvent postCreatedEvent = record.value();
-
-        try {
-            postCreatedEventService.processEvent(eventId, postCreatedEvent);
-            ack.acknowledge();
-        } catch (Exception e) {
-            log.error("Error processing event: eventId={}, error={}", eventId, e.getMessage());
-            ack.acknowledge();
-        }
+        // 예외를 발생시켜 재시도 확인
+//        if (true) {
+//            throw new RuntimeException("컨슈머 메서드에서 강제 예외 발생");
+//        }
+        postCreatedEventService.processEvent(eventId, postCreatedEvent);
+        ack.acknowledge();
     }
 }
