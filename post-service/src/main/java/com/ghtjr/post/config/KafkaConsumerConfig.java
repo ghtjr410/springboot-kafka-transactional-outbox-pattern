@@ -4,6 +4,7 @@ import com.ghtjr.projection.avro.PostCompensationEvent;
 import io.confluent.kafka.serializers.AbstractKafkaSchemaSerDeConfig;
 import io.confluent.kafka.serializers.KafkaAvroDeserializer;
 import io.confluent.kafka.serializers.KafkaAvroDeserializerConfig;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.springframework.beans.factory.annotation.Value;
@@ -22,6 +23,7 @@ import java.util.Map;
 
 @EnableKafka
 @Configuration
+@Slf4j
 public class KafkaConsumerConfig {
 
      @Value("${spring.kafka.bootstrap-servers}")
@@ -72,8 +74,13 @@ public class KafkaConsumerConfig {
          backOff.setMultiplier(1.0);        // 고정 간격 사용
          backOff.setMaxInterval(1000L);     // 최대 간격 설정
 
+         DefaultErrorHandler errorHandler = new DefaultErrorHandler(backOff);
+         // 재시도 시도 시 로그를 남기기 위한 리스너 추가
+         errorHandler.setRetryListeners((record, exception, deliveryAttempt) -> {
+             log.warn("재시도 시도 중입니다. 시도 횟수: {}, 예외: {}", deliveryAttempt, exception.getMessage());
+         });
          // 특정 예외를 무시하거나 재시도할 수 있도록 추가 설정 가능
-         return new DefaultErrorHandler(backOff);
+         return errorHandler;
      }
 
      @Bean
