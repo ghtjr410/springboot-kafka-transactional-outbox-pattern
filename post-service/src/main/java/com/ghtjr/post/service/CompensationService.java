@@ -25,6 +25,9 @@ public class CompensationService {
     @Transactional
     public void compensateOutboxEvent(OutboxEvent event) {
         // Implement your compensation logic here
+//        if (true) {
+//            throw new RuntimeException("Simulated exception during Kafka send for testing.");
+//        }
         try {
             // Compensation logic
             log.info("Compensation transaction executed for eventId: {}, postUuid: {}", event.getEventId(), event.getPostId());
@@ -32,7 +35,6 @@ public class CompensationService {
             outboxEventRepository.save(event);
             // postId에 해당하는 포스트를 삭제합니다.
             postRepository.deleteByUuid(event.getPostId());
-
         } catch (Exception ex) {
             log.error("Error during compensation transaction: {}", ex.getMessage());
             // Handle compensation failure if necessary

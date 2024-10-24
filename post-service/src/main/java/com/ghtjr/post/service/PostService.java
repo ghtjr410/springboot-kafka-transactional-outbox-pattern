@@ -1,6 +1,5 @@
 package com.ghtjr.post.service;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.ghtjr.post.dto.PostRequestDTO;
 import com.ghtjr.post.dto.PostResponseDTO;
 import com.ghtjr.post.mapper.PostMapper;
