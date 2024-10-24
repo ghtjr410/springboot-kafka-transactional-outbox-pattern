@@ -15,11 +15,10 @@ public class PostCompensationEventService {
 
     public void processEvent(String eventId, PostCreatedEvent postCreatedEvent) {
         // 보상 이벤트 객체 생성
-        PostCompensationEvent compensationEvent = new PostCompensationEvent();
-        compensationEvent.setPostId(postCreatedEvent.getPostId());
-        compensationEvent.setReason("이벤트 처리 중 오류 발생");
-
+        PostCompensationEvent postCompensationEvent = new PostCompensationEvent();
+        postCompensationEvent.setPostId(postCreatedEvent.getPostId());
+        postCompensationEvent.setReason("이벤트 처리 중 오류 발생");
         // 보상 이벤트 발행
-        compensationEventProducer.publishEvent(eventId, compensationEvent);
+        compensationEventProducer.publishEvent(eventId, postCompensationEvent);
     }
 }
