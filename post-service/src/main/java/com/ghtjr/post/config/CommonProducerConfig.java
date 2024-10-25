@@ -1,31 +1,25 @@
 package com.ghtjr.post.config;
 
-import com.ghtjr.post.avro.PostCreatedEvent;
+import io.confluent.kafka.serializers.AbstractKafkaSchemaSerDeConfig;
 import io.confluent.kafka.serializers.KafkaAvroSerializer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.kafka.core.DefaultKafkaProducerFactory;
-import org.springframework.kafka.core.KafkaTemplate;
-import org.springframework.kafka.core.ProducerFactory;
-import io.confluent.kafka.serializers.AbstractKafkaSchemaSerDeConfig;
+
 import java.util.HashMap;
 import java.util.Map;
 
 @Configuration
-public class KafkaProducerConfig {
-
+public class CommonProducerConfig {
     @Value("${spring.kafka.bootstrap-servers}")
     private String bootstrapServers;
-    @Value("${post.event.topic.name}")
-    private String eventTopicName;
     @Value("${spring.kafka.properties.schema.registry.url}")
     private String schemaRegistryUrl;
 
     @Bean
-    public ProducerFactory<String, PostCreatedEvent> producerFactory() {
+    protected Map<String, Object> commonProducerFactory() {
         Map<String, Object> configProps = new HashMap<>();
         configProps.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
         // Key Serializer
@@ -43,11 +37,6 @@ public class KafkaProducerConfig {
         configProps.put(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, true); // 아이도포턴트 프로듀서 활성화
         configProps.put(ProducerConfig.MAX_IN_FLIGHT_REQUESTS_PER_CONNECTION, 1); // 메시지 순서 보장
 
-        return new DefaultKafkaProducerFactory<>(configProps);
-    }
-
-    @Bean
-    public KafkaTemplate<String, PostCreatedEvent> kafkaTemplate() {
-        return new KafkaTemplate<>(producerFactory());
+        return configProps;
     }
 }
