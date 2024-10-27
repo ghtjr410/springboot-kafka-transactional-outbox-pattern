@@ -19,8 +19,6 @@ import java.util.Map;
 public class KafkaProducerConfig {
     @Value("${spring.kafka.bootstrap-servers}")
     private String bootstrapServers;
-    @Value("${projection.topic.name}")
-    private String eventTopicName;
     @Value("${spring.kafka.properties.schema.registry.url}")
     private String schemaRegistryUrl;
 

@@ -15,7 +15,7 @@ import org.springframework.stereotype.Component;
 public class PostCreatedEventConsumer {
     private final PostCreatedEventService postCreatedEventService;
 
-    @KafkaListener(topics = "${projection.topic.name}", groupId = "${projection.consumer.group-id}")
+    @KafkaListener(topics = "${post.event.topic.created}", groupId = "${projection.consumer.group-id}")
     public void consume(ConsumerRecord<String, PostCreatedEvent> record, Acknowledgment ack) {
         log.info("Received message: key={}, value={}", record.key(), record.value());
 
